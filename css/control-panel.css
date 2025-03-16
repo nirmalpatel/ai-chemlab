@@ -1,0 +1,113 @@
+body .control-panel,
+html .control-panel,
+#control-panel {
+  position: fixed !important;
+  top: 10px !important;
+  left: 10px !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-radius: 8px !important;
+  padding: 15px !important;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3) !important;
+  width: 320px !important;
+  max-height: 90vh !important;
+  overflow-y: auto !important;
+  z-index: 10000 !important; /* Higher z-index to ensure visibility */
+  display: block !important; /* Force display */
+  visibility: visible !important;
+  opacity: 1 !important;
+  font-family: Arial, sans-serif !important;
+  font-size: 14px !important;
+  color: #333 !important;
+  border: 1px solid #ccc !important;
+  box-sizing: border-box !important;
+  pointer-events: auto !important;
+}
+
+.control-panel h2 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  font-size: 18px;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 8px;
+}
+
+.beaker-selector {
+  margin-bottom: 15px;
+}
+
+.property-group {
+  margin-bottom: 15px;
+}
+
+.property-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.property-name {
+  flex: 1;
+  font-weight: bold;
+}
+
+.property-value {
+  flex: 2;
+}
+
+input[type="range"] {
+  width: 100%;
+}
+
+input[type="color"] {
+  width: 40px;
+  height: 25px;
+}
+
+select {
+  width: 100%;
+  padding: 5px;
+}
+
+.color-picker-container {
+  display: flex;
+  align-items: center;
+}
+
+.color-value {
+  margin-left: 10px;
+  font-size: 12px;
+  color: #666;
+}
+
+.hidden {
+  display: none;
+}
+
+/* Add additional rules for control panel visibility */
+.side-panel {
+  display: block !important;
+  visibility: visible !important;
+}
+
+/* Emergency fallback styles - these will be used if other styles fail */
+[id="control-panel"] {
+  position: fixed !important;
+  display: block !important;
+  visibility: visible !important;
+  z-index: 20000 !important;
+}
+
+/* Add specific styling for the beaker selector to ensure it shows up */
+#beaker-select,
+#chemical-type,
+#liquid-level,
+#liquid-color,
+#ph-level,
+#temperature,
+#concentration {
+  width: 100% !important;
+  display: block !important;
+  visibility: visible !important;
+  margin: 5px 0 !important;
+}

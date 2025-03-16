@@ -3,26 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chemistry Virtual Lab</title>
-    <link rel="stylesheet" href="style.css">
+    <title>AI ChemLab - Interactive Chemistry Simulator</title>
+    <!-- Load CSS files with specific order -->
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/control-panel.css">
+    <link rel="stylesheet" href="css/components.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        #scene-container {
+            width: 100%;
+            height: 100vh;
+        }
+        /* Force panels to be visible with important flags */
+        .control-panel, .reaction-log, .toolbox,
+        #control-panel, #reaction-log, #toolbox {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            z-index: 10000 !important;
+        }
+        
+        /* Emergency backup styles - direct styling */
+        #control-panel {
+            position: fixed !important;
+            top: 10px !important;
+            left: 10px !important;
+            width: 320px !important;
+            background: white !important;
+            border: 2px solid #333 !important;
+            padding: 15px !important;
+            border-radius: 8px !important;
+            box-shadow: 0 0 15px rgba(0,0,0,0.3) !important;
+        }
+    </style>
+    <!-- Load PixiJS library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/6.5.2/browser/pixi.min.js"></script>
 </head>
 <body>
-    <div id="container">
-        <div id="info">
-            <h1>Chemistry Virtual Lab</h1>
-            <p>Click and drag a beaker to pour liquid into another one</p>
-        </div>
-        <div id="scene-container"></div>
-    </div>
+    <!-- Main scene container for PixiJS -->
+    <div id="scene-container"></div>
     
-    <script type="importmap">
-        {
-            "imports": {
-                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    <!-- Side panels with structured content -->
+    <div id="control-panel" class="control-panel side-panel">
+        <h2>Chemistry Lab Control Panel</h2>
+        <div class="beaker-selector property-group">
+            <label for="beaker-select">Select Beaker:</label>
+            <select id="beaker-select">
+                <option value="loading">Loading beakers...</option>
+            </select>
+        </div>
+        <div class="property-group">
+            <h3>Loading Control Panel...</h3>
+            <p>If this message persists, there might be an issue with JavaScript execution.</p>
+        </div>
+    </div>
+    <div id="reaction-log" class="reaction-log side-panel"></div>
+    <div id="toolbox" class="toolbox side-panel"></div>
+    
+    <!-- Debug helper script -->
+    <script>
+        // Immediate execution to ensure panel visibility
+        window.addEventListener('load', function() {
+            console.log('Window loaded, ensuring panel visibility');
+            const panel = document.getElementById('control-panel');
+            if (panel) {
+                panel.style.display = 'block';
+                panel.style.visibility = 'visible';
+                panel.style.zIndex = '10000';
             }
-        }
+        });
     </script>
+    
+    <!-- Load application scripts as modules -->
     <script type="module" src="js/main.js"></script>
 </body>
 </html>

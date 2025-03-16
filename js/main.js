@@ -1,223 +1,287 @@
-import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { Beaker } from './beaker.js';
-import { DragControls } from 'three/addons/controls/DragControls.js';
+import { ControlPanel } from './control-panel.js';
+import { chemicals } from './chemicals.js';
+import { ReactionSystem } from './reaction-system.js';
+import { ReactionLog } from './reaction-log.js';
+import { Toolbox } from './toolbox.js';
+import { debugElement, forceElementVisibility } from './debug-utils.js';
 
-class ChemistryLab {
-    constructor() {
-        this.container = document.getElementById('scene-container');
-        
-        // Setup scene
-        this.scene = new THREE.Scene();
-        this.scene.background = new THREE.Color(0xf0f0f0);
-        
-        // Setup renderer - moved before environment map setup
-        this.renderer = new THREE.WebGLRenderer({ antialias: true });
-        this.renderer.setPixelRatio(window.devicePixelRatio);
-        this.renderer.setSize(window.innerWidth, window.innerHeight);
-        this.renderer.shadowMap.enabled = true;
-        this.container.appendChild(this.renderer.domElement);
-        
-        // Add environment map for glass refraction
-        this.setupEnvironmentMap();
-        
-        // Setup camera
-        this.camera = new THREE.PerspectiveCamera(
-            45, // fov
-            window.innerWidth / window.innerHeight, // aspect
-            0.1, // near
-            1000 // far
-        );
-        this.camera.position.set(0, 10, 20);
-        
-        // Setup orbit controls
-        this.orbitControls = new OrbitControls(this.camera, this.renderer.domElement);
-        this.orbitControls.enableDamping = true;
-        
-        // Setup lighting
-        this.setupLights();
-        
-        // Setup lab table
-        this.setupLabTable();
-        
-        // Create beakers
-        this.beakers = [];
-        this.createBeakers();
-        
-        // Setup drag controls
-        this.setupDragControls();
-        
-        // Handle window resize
-        window.addEventListener('resize', this.onWindowResize.bind(this));
-        
-        // Start animation loop
-        this.animate();
-    }
+// Ensure CSS is loaded
+function ensureStylesLoaded() {
+    // Check if our stylesheets are already loaded
+    const requiredStyles = ['style.css', 'control-panel.css', 'components.css', 'styles.css'];
+    const loadedStylesheets = Array.from(document.styleSheets).map(sheet => 
+        sheet.href ? sheet.href.split('/').pop() : '');
     
-    setupEnvironmentMap() {
-        // Simplified environment map setup without PMREMGenerator
-        const envTexture = new THREE.CubeTextureLoader().load([
-            'https://threejs.org/examples/textures/cube/pisa/px.png',
-            'https://threejs.org/examples/textures/cube/pisa/nx.png',
-            'https://threejs.org/examples/textures/cube/pisa/py.png',
-            'https://threejs.org/examples/textures/cube/pisa/ny.png',
-            'https://threejs.org/examples/textures/cube/pisa/pz.png',
-            'https://threejs.org/examples/textures/cube/pisa/nz.png'
-        ]);
-        
-        this.scene.environment = envTexture;
-    }
+    console.log('Currently loaded stylesheets:', loadedStylesheets);
     
-    setupLights() {
-        // Ambient light for general illumination
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-        this.scene.add(ambientLight);
-        
-        // Directional light for shadows
-        const dirLight = new THREE.DirectionalLight(0xffffff, 1);
-        dirLight.position.set(5, 10, 5);
-        dirLight.castShadow = true;
-        dirLight.shadow.mapSize.width = 1024;
-        dirLight.shadow.mapSize.height = 1024;
-        this.scene.add(dirLight);
-    }
-    
-    setupLabTable() {
-        // Create a simple gray floor
-        const floorGeometry = new THREE.PlaneGeometry(30, 15);
-        const floorMaterial = new THREE.MeshStandardMaterial({ 
-            color: 0xcccccc, 
-            roughness: 0.7 
-        });
-        this.floor = new THREE.Mesh(floorGeometry, floorMaterial);
-        this.floor.rotation.x = -Math.PI / 2; // Rotate to be horizontal
-        this.floor.position.y = 0;
-        this.floor.receiveShadow = true;
-        this.scene.add(this.floor);
-        
-        // Add grid for reference
-        const gridHelper = new THREE.GridHelper(30, 30);
-        gridHelper.position.y = 0.01; // Slightly above floor to prevent z-fighting
-        this.scene.add(gridHelper);
-    }
-    
-    createBeakers() {
-        // Create first beaker with blue liquid
-        const beaker1 = new Beaker(2, 4, 0x3498db, 0.8);
-        beaker1.position.set(-5, 0, 0);
-        this.scene.add(beaker1);
-        this.beakers.push(beaker1);
-        
-        // Create second empty beaker
-        const beaker2 = new Beaker(2, 4, 0x3498db, 0);
-        beaker2.position.set(5, 0, 0);
-        this.scene.add(beaker2);
-        this.beakers.push(beaker2);
-        
-        // Ensure beakers are positioned correctly on table
-        for (const beaker of this.beakers) {
-            beaker.position.y = 0; // Position at table level
+    // Load any missing styles
+    requiredStyles.forEach(stylesheet => {
+        if (!loadedStylesheets.some(sheet => sheet.includes(stylesheet))) {
+            console.log(`Loading missing stylesheet: ${stylesheet}`);
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = `css/${stylesheet}`;
+            document.head.appendChild(link);
         }
-    }
+    });
     
-    setupDragControls() {
-        this.dragControls = new DragControls(this.beakers, this.camera, this.renderer.domElement);
-        
-        this.dragControls.addEventListener('dragstart', () => {
-            this.orbitControls.enabled = false;
-        });
-        
-        this.dragControls.addEventListener('dragend', (event) => {
-            this.orbitControls.enabled = true;
-            
-            // Check if we're pouring into another beaker
-            const draggedBeaker = event.object;
-            
-            if (draggedBeaker.rotation.z > 0.3) {  // If beaker is tilted enough
-                for (const targetBeaker of this.beakers) {
-                    if (targetBeaker !== draggedBeaker) {
-                        const distance = draggedBeaker.position.distanceTo(targetBeaker.position);
-                        
-                        if (distance < 8) {  // If beakers are close enough
-                            this.pourLiquid(draggedBeaker, targetBeaker);
-                        }
-                    }
-                }
-            }
-            
-            // Reset beaker rotation
-            draggedBeaker.rotation.set(0, 0, 0);
-            
-            // Ensure beaker stays on floor
-            if (draggedBeaker.position.y < 0) {
-                draggedBeaker.position.y = 0;
-            }
-            
-            // Keep beakers within floor bounds
-            const FLOOR_HALF_WIDTH = 15;
-            const FLOOR_HALF_DEPTH = 7.5;
-            draggedBeaker.position.x = Math.max(-FLOOR_HALF_WIDTH, Math.min(FLOOR_HALF_WIDTH, draggedBeaker.position.x));
-            draggedBeaker.position.z = Math.max(-FLOOR_HALF_DEPTH, Math.min(FLOOR_HALF_DEPTH, draggedBeaker.position.z));
-        });
-        
-        this.dragControls.addEventListener('drag', (event) => {
-            const draggedBeaker = event.object;
-            
-            // Limit movement to horizontal plane, but never below table
-            draggedBeaker.position.y = Math.max(0, draggedBeaker.position.y);
-            
-            // Allow tilting the beaker when dragged upward
-            if (event.object.userData.prevY !== undefined) {
-                const deltaY = event.object.userData.prevY - event.object.position.y;
-                draggedBeaker.rotation.z = Math.max(0, Math.min(Math.PI / 3, draggedBeaker.rotation.z + deltaY));
-            }
-            
-            event.object.userData.prevY = event.object.position.y;
-        });
-    }
-    
-    pourLiquid(sourceBeaker, targetBeaker) {
-        if (sourceBeaker.liquidLevel > 0.1) {
-            // Transfer some liquid
-            const amountToPour = Math.min(sourceBeaker.liquidLevel, 0.2);
-            sourceBeaker.setLiquidLevel(sourceBeaker.liquidLevel - amountToPour);
-            targetBeaker.setLiquidLevel(targetBeaker.liquidLevel + amountToPour);
-            
-            // Transfer color if target is empty
-            if (targetBeaker.liquidLevel <= amountToPour) {
-                targetBeaker.setLiquidColor(sourceBeaker.liquidColor);
-            } else {
-                // Mix colors (simplified)
-                const mixedColor = new THREE.Color().addColors(
-                    targetBeaker.liquidColor,
-                    sourceBeaker.liquidColor
-                ).multiplyScalar(0.5);
-                targetBeaker.setLiquidColor(mixedColor);
-            }
+    // Add inline styles for critical panel visibility
+    const style = document.createElement('style');
+    style.textContent = `
+        .control-panel, .reaction-log, .toolbox {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
         }
-    }
-    
-    onWindowResize() {
-        this.camera.aspect = window.innerWidth / window.innerHeight;
-        this.camera.updateProjectionMatrix();
-        this.renderer.setSize(window.innerWidth, window.innerHeight);
-    }
-    
-    animate() {
-        requestAnimationFrame(this.animate.bind(this));
-        
-        this.orbitControls.update();
-        
-        // Update any animations or simulations
-        for (const beaker of this.beakers) {
-            beaker.update();
-        }
-        
-        this.renderer.render(this.scene, this.camera);
-    }
+    `;
+    document.head.appendChild(style);
 }
 
-// Initialize the lab when the page is loaded
-window.addEventListener('DOMContentLoaded', () => {
-    const lab = new ChemistryLab();
+// Wait for DOM content to be fully loaded
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM fully loaded');
+    
+    // Ensure our styles are loaded
+    ensureStylesLoaded();
+    
+    // Debug initial state of control panel
+    debugElement('control-panel', 'Initial state of control panel');
+    
+    // Make sure PIXI is loaded
+    if (typeof PIXI === 'undefined') {
+        console.error('PIXI is not defined. Make sure the PixiJS library is loaded properly.');
+        return;
+    }
+
+    // Initialize PixiJS Application
+    const app = new PIXI.Application({
+        width: window.innerWidth,
+        height: window.innerHeight,
+        backgroundColor: 0xf0f0f0,
+        antialias: true,
+        resizeTo: window
+    });
+
+    // Add the canvas to the HTML document - Fixed approach
+    const sceneContainer = document.getElementById('scene-container');
+    if (sceneContainer) {
+        // Depending on PIXI version, canvas might be accessed differently
+        if (app.view instanceof HTMLCanvasElement) {
+            sceneContainer.appendChild(app.view);
+        } else if (app.view && app.view.canvas instanceof HTMLCanvasElement) {
+            sceneContainer.appendChild(app.view.canvas);
+        } else {
+            console.error('Unable to access PIXI canvas element. Check PIXI version compatibility.');
+            return;
+        }
+    } else {
+        console.error('Scene container not found in the document');
+        return;
+    }
+
+    // Create beakers with different chemicals to demonstrate reactions
+    const beaker1 = new Beaker({
+        id: 'Beaker A',
+        x: window.innerWidth / 4,
+        y: window.innerHeight / 2,
+        width: 150,
+        height: 200,
+        liquidColor: chemicals.sodiumHydroxide.defaultColor,
+        liquidLevel: 0.7, // 70% filled
+        chemicalType: 'sodiumHydroxide',
+        pHLevel: chemicals.sodiumHydroxide.pHLevel,
+        temperature: chemicals.sodiumHydroxide.defaultTemperature,
+        density: chemicals.sodiumHydroxide.density,
+        description: chemicals.sodiumHydroxide.description
+    });
+
+    const beaker2 = new Beaker({
+        id: 'Beaker B',
+        x: 2 * window.innerWidth / 4,
+        y: window.innerHeight / 2,
+        width: 150,
+        height: 200,
+        liquidColor: chemicals.hydrochloricAcid.defaultColor,
+        liquidLevel: 0.5, // 50% filled
+        chemicalType: 'hydrochloricAcid',
+        pHLevel: chemicals.hydrochloricAcid.pHLevel,
+        temperature: chemicals.hydrochloricAcid.defaultTemperature,
+        density: chemicals.hydrochloricAcid.density,
+        description: chemicals.hydrochloricAcid.description
+    });
+
+    // Create another beaker with silver nitrate for precipitation reactions
+    const beaker3 = new Beaker({
+        id: 'Beaker C',
+        x: 3 * window.innerWidth / 4,
+        y: window.innerHeight / 2,
+        width: 150,
+        height: 200,
+        liquidColor: chemicals.silverNitrate.defaultColor,
+        liquidLevel: 0.6, // 60% filled
+        chemicalType: 'silverNitrate',
+        pHLevel: chemicals.silverNitrate.pHLevel,
+        temperature: chemicals.silverNitrate.defaultTemperature,
+        density: chemicals.silverNitrate.density,
+        description: chemicals.silverNitrate.description
+    });
+
+    // Create an empty beaker for mixing
+    const beaker4 = new Beaker({
+        id: 'Mixing Beaker',
+        x: window.innerWidth / 2,
+        y: window.innerHeight / 2 + 200,
+        width: 180,
+        height: 220,
+        liquidColor: 0xFFFFFF,
+        liquidLevel: 0, // Empty
+        chemicalType: 'empty',
+        pHLevel: 7.0,
+        temperature: 25,
+        density: 1.0,
+        description: "Empty beaker ready for mixing chemicals"
+    });
+
+    // Add beakers to the stage
+    app.stage.addChild(beaker1.container);
+    app.stage.addChild(beaker2.container);
+    app.stage.addChild(beaker3.container);
+    app.stage.addChild(beaker4.container);
+    
+    // Initialize reaction system with all beakers
+    const reactionSystem = new ReactionSystem({
+        app: app,
+        beakers: [beaker1, beaker2, beaker3, beaker4]
+    });
+
+    // Initialize reaction log - ensure the container exists
+    const reactionLogElement = document.getElementById('reaction-log');
+    if (!reactionLogElement) {
+        console.log('Creating reaction log element');
+        const logDiv = document.createElement('div');
+        logDiv.id = 'reaction-log';
+        logDiv.className = 'reaction-log side-panel';
+        document.body.appendChild(logDiv);
+    }
+    
+    // Initialize reaction log
+    const reactionLog = new ReactionLog({
+        containerId: 'reaction-log'
+    });
+    
+    // Update initial log message
+    reactionLog.addEntry('Welcome to AI ChemLab! Mix chemicals to see reactions. Try mixing acids with bases or salt solutions!');
+
+    // Initialize toolbox - ensure the container exists
+    const toolboxElement = document.getElementById('toolbox');
+    if (!toolboxElement) {
+        console.log('Creating toolbox element');
+        const toolDiv = document.createElement('div');
+        toolDiv.id = 'toolbox';
+        toolDiv.className = 'toolbox side-panel';
+        document.body.appendChild(toolDiv);
+    }
+
+    // Initialize toolbox
+    const toolbox = new Toolbox({
+        containerId: 'toolbox',
+        app: app,
+        items: ['thermometer', 'stirrer', 'dropper', 'burner']
+    });
+
+    // Initialize control panel with more robust checks
+    console.log('Initializing control panel');
+    const controlPanelElement = document.getElementById('control-panel');
+    
+    if (!controlPanelElement) {
+        console.error('Control panel element not found, creating it');
+        const panel = document.createElement('div');
+        panel.id = 'control-panel';
+        panel.className = 'control-panel side-panel';
+        panel.innerHTML = '<h2>Chemistry Lab Control Panel</h2><p>Loading control panel...</p>';
+        document.body.appendChild(panel);
+    } else {
+        console.log('Found existing control panel element:', controlPanelElement);
+        // Ensure the element has some initial content
+        if (!controlPanelElement.innerHTML || controlPanelElement.innerHTML.trim() === '') {
+            controlPanelElement.innerHTML = '<h2>Chemistry Lab Control Panel</h2><p>Loading control panel...</p>';
+        }
+    }
+
+    // Force visibility of all panels before creating controllers
+    forceElementVisibility('control-panel');
+    forceElementVisibility('reaction-log');
+    forceElementVisibility('toolbox');
+
+    // Setup UI in a short timeout to ensure DOM is ready
+    setTimeout(() => {
+        console.log('Setting up UI components with delay');
+        
+        // Initialize control panel with all beakers
+        const controlPanel = new ControlPanel({
+            containerId: 'control-panel',
+            beakers: [beaker1, beaker2, beaker3, beaker4],
+            reactionSystem: reactionSystem,
+            reactionLog: reactionLog
+        });
+        
+        // Debug the state after initialization
+        debugElement('control-panel', 'Control panel after initialization');
+        
+        // Rest of the setup...
+    }, 500);
+
+    // Force visibility of control panel
+    const cpanel = document.getElementById('control-panel');
+    if (cpanel) {
+        cpanel.style.display = 'block';
+        cpanel.style.visibility = 'visible';
+        cpanel.style.opacity = '1';
+        console.log('Control panel element ready:', cpanel);
+    }
+
+    // Debug check for control panel content
+    console.log('Control panel HTML content:', document.getElementById('control-panel').innerHTML);
+
+    // Make sure all panels are visible
+    document.getElementById('control-panel').style.display = 'block';
+    document.getElementById('reaction-log').style.display = 'block';
+    document.getElementById('toolbox').style.display = 'block';
+
+    // Setup interactive pouring between all beakers
+    const allBeakers = [beaker1, beaker2, beaker3, beaker4];
+    allBeakers.forEach(sourceBeaker => {
+        const targetBeakers = allBeakers.filter(b => b !== sourceBeaker);
+        sourceBeaker.setupPouringInteraction(app.stage, targetBeakers, reactionSystem, reactionLog);
+    });
+
+    // Handle window resize
+    window.addEventListener('resize', () => {
+        beaker1.container.x = window.innerWidth / 4;
+        beaker1.container.y = window.innerHeight / 2;
+        
+        beaker2.container.x = 2 * window.innerWidth / 4;
+        beaker2.container.y = window.innerHeight / 2;
+        
+        beaker3.container.x = 3 * window.innerWidth / 4;
+        beaker3.container.y = window.innerHeight / 2;
+
+        beaker4.container.x = window.innerWidth / 2;
+        beaker4.container.y = window.innerHeight / 2 + 200;
+    });
+    
+    // Add animation ticker
+    app.ticker.add((delta) => {
+        // Update beaker animations
+        beaker1.update(delta);
+        beaker2.update(delta);
+        beaker3.update(delta);
+        beaker4.update(delta);
+        
+        // Update reaction system
+        reactionSystem.update(delta);
+    });
+    
+    console.log('Setup complete');
 });

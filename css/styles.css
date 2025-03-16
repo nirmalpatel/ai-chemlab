@@ -1,0 +1,217 @@
+/* Main styles file that imports all component styles */
+
+/* Import base styles */
+@import url('style.css');
+
+/* Import component styles */
+@import url('control-panel.css');
+@import url('components.css');
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    overflow: hidden;
+}
+
+#scene-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+/* Side panel styles */
+.side-panel {
+    display: block;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+    position: absolute;
+    z-index: 1000; /* Increased to ensure visibility */
+    background-color: rgba(255, 255, 255, 0.95); /* More opaque for better readability */
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+    border-radius: 5px;
+    overflow-y: auto;
+    padding: 15px;
+    max-height: 90vh;
+}
+
+/* Control panel - Top Left */
+.control-panel {
+    top: 10px;
+    left: 10px;
+    width: 300px;
+    height: calc(50vh - 20px);
+    padding: 15px;
+}
+
+/* Reaction log - Bottom */
+.reaction-log {
+    bottom: 10px;
+    left: 10px;
+    width: 300px;
+    height: calc(50vh - 20px);
+    padding: 15px;
+    max-height: 30vh;
+}
+
+/* Toolbox - Top Right */
+.toolbox {
+    top: 10px;
+    right: 10px;
+    width: 250px;
+    padding: 15px;
+}
+
+/* Ensure panels remain visible */
+#control-panel, #reaction-log, #toolbox {
+    display: block !important;
+    z-index: 1000;
+}
+
+/* Common elements */
+h2, h3 {
+    margin-top: 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #ddd;
+}
+
+.property-group {
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.property-group h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 16px;
+    color: #2c3e50;
+}
+
+.property-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.property-name {
+    flex: 1;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.property-value {
+    flex: 2;
+    display: flex;
+    align-items: center;
+}
+
+input[type="range"] {
+    flex: 1;
+    margin-right: 10px;
+    width: 100%;
+}
+
+select {
+    width: 100%;
+    padding: 5px;
+}
+
+/* Tool items */
+.tool-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.tool-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 70px;
+    height: 70px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 5px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.tool-item:hover {
+    background-color: #f5f5f5;
+    transform: scale(1.05);
+}
+
+.tool-item.active {
+    background-color: #e1f5fe;
+    border-color: #03a9f4;
+}
+
+.tool-item img {
+    width: 40px;
+    height: 40px;
+    margin-bottom: 5px;
+}
+
+.tool-item span {
+    font-size: 12px;
+    text-align: center;
+}
+
+/* Reaction log entries */
+.log-entries {
+    height: calc(100% - 40px);
+    overflow-y: auto;
+}
+
+.log-entry {
+    padding: 8px;
+    margin-bottom: 5px;
+    border-radius: 3px;
+    background-color: #f8f8f8;
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 8px;
+    padding: 5px;
+    background-color: #f5f5f5;
+    border-left: 4px solid #03a9f4;
+    font-size: 14px;
+}
+
+.log-entry .icon {
+    margin-right: 5px;
+}
+
+.log-entry .time {
+    color: #777;
+    font-size: 0.8em;
+    margin-right: 5px;
+}
+
+.log-entry.reaction {
+    background-color: #e8f4fd;
+}
+
+.log-entry.warning {
+    background-color: #fff9e6;
+}
+
+.log-entry.error {
+    background-color: #ffebee;
+}
+
+/* Color picker container */
+.color-picker-container {
+    display: flex;
+    align-items: center;
+}
+
+.color-value {
+    margin-left: 10px;
+}
